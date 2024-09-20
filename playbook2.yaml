@@ -1,0 +1,30 @@
+---
+- name: Deploy Hello World Application on Kubernetes
+  hosts: localhost
+  tasks:
+    - name: Check if Nginx Ingress is installed
+      community.kubernetes.helm_info:
+        name: nginx-ingress
+        namespace: default
+      register: helm_result
+      ignore_errors: yes
+
+    - name: Install Nginx Ingress using Helm if not installed
+      community.kubernetes.helm:
+        name: nginx-ingress
+        chart_ref: ingress-nginx/ingress-nginx
+        release_namespace: default
+        chart_repo_url: https://kubernetes.github.io/ingress-nginx
+        state: present
+      when: helm_result.failed or helm_result.resources | length == 0
+      ignore_errors: yes
+
+    - name: Apply Kubernetes Deployment
+      community.kubernetes.k8s:
+        state: present
+        src: ~/k8/deployment.yaml
+
+    - name: Apply Kubernetes Ingress
+      community.kubernetes.k8s:
+        state: present
+        src: ~/k8/service-ingress.yaml
